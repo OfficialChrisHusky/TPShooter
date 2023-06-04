@@ -1,21 +1,14 @@
 using UnityEngine;
 
-public class AmmoPickup : MonoBehaviour {
+public class AmmoPickup : Pickup {
     
     [SerializeField] private uint amount = 18;
     [SerializeField] private Weapon weapon;
 
-    void Pickup() {
+    public override void OnPickup() {
 
         if (!Player.instance.PickupAmmo(weapon.WeaponID, amount)) return;
         Destroy(gameObject);
-
-    }
-
-    void OnTriggerEnter(Collider other) {
-        
-        if (other.tag != "Player") return;
-        Pickup();
 
     }
 

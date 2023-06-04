@@ -1,5 +1,4 @@
-using System.Diagnostics;
-using System;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
@@ -23,6 +22,10 @@ public class Player : MonoBehaviour {
     [SerializeField] private bool ads = false;
     [SerializeField] private Vector3 adsCamOffset = new Vector3(0.6f ,0.35f ,-1.15f);
 
+    [Header("Equipment")]
+    [SerializeField] private List<Equipment> equipment = new List<Equipment>(3);
+    [SerializeField] private int currentEquipmentIndex;
+
     void Start() {
         
         if (!weapons[currentWeaponIndex]) return;
@@ -33,7 +36,19 @@ public class Player : MonoBehaviour {
 
     void Update() {
         
+        HandleWeapons();
+        HandleEquipment();
+        
+    }
+    void HandleWeapons() {
+
+        if(Input.GetKeyDown(KeyCode.Alpha1))
+            SwitchWeapon(0);
+        if(Input.GetKeyDown(KeyCode.Alpha2))
+            SwitchWeapon(1);
+
         if (!weapons[currentWeaponIndex]) return;
+        if (!weapons[currentWeaponIndex].gameObject.activeSelf) return;
 
         if (Input.GetKey(KeyCode.Mouse0))
             Shoot();
@@ -42,11 +57,7 @@ public class Player : MonoBehaviour {
         
         if (Input.GetKeyDown(KeyCode.Mouse1))
             ToggleADS();
-        
-        if(Input.GetKeyDown(KeyCode.Alpha1))
-            SwitchWeapon(0);
-        if(Input.GetKeyDown(KeyCode.Alpha2))
-            SwitchWeapon(1);
+
         float scrollValue = Input.GetAxis("Mouse ScrollWheel");
         if (scrollValue > 0.0f)
             SwitchWeapon(currentWeaponIndex + 1);
@@ -55,8 +66,23 @@ public class Player : MonoBehaviour {
         
         if(Input.GetKeyDown(KeyCode.G))
             DropWeapon();
+
+    }
+    void HandleEquipment() {
+
+        if (!equipment[currentEquipmentIndex]) return;
+        if ( equipment[currentEquipmentIndex].Amount == 0) return;
+
+        if(Input.GetKeyDown(KeyCode.E))
+            EquipEquipment(currentEquipmentIndex);
+        if(Input.GetKeyDown(KeyCode.F))
+            UnequipEquipment();
         
-        
+        if (!equipment[currentEquipmentIndex].gameObject.activeSelf) return;
+
+        if (Input.GetKeyDown(KeyCode.Mouse0))
+            UseEquipment();
+
     }
 
     public bool PickupWeapon(Weapon weapon) {
@@ -66,8 +92,10 @@ public class Player : MonoBehaviour {
         else if(!weapons[1]) freeIndex = 1;
         else return false;
 
-        if (weapons[currentWeaponIndex])
+        if (weapons[currentWeaponIndex] && weapons[currentWeaponIndex].gameObject.activeSelf)
             weapons[currentWeaponIndex].gameObject.SetActive(false);
+        else if(equipment[currentEquipmentIndex] && equipment[currentEquipmentIndex].gameObject.activeSelf)
+            equipment[currentEquipmentIndex].gameObject.SetActive(false);
 
         weapons[freeIndex] = Instantiate(weapon.gameObject, eyes).GetComponent<Weapon>();
         weapons[freeIndex].transform.localPosition = weaponOffset;
@@ -86,6 +114,35 @@ public class Player : MonoBehaviour {
 
         weapons[index].AddAmmo(amount);
         return true;
+
+    }
+    public uint PickupEquipment(Equipment e, uint amount) {
+        
+        int index;
+        bool success = false;
+        for(index = 0; index < equipment.Count(); index++) {
+
+            if(!equipment[index] || equipment[index].Name == e.Name) { success = true; break; }
+
+        }
+        if (!success) return 0;
+        if (equipment[index]) return equipment[index].Add(amount);
+
+        if (weapons[currentWeaponIndex] && weapons[currentWeaponIndex].gameObject.activeSelf)
+            weapons[currentWeaponIndex].gameObject.SetActive(false);
+        else if(equipment[currentEquipmentIndex] && equipment[currentEquipmentIndex].gameObject.activeSelf)
+            equipment[currentEquipmentIndex].gameObject.SetActive(false);
+        
+        if (ads)
+            ToggleADS();
+        
+        equipment[index] = Instantiate(e.gameObject, eyes).GetComponent<Equipment>();
+        equipment[index].transform.localPosition = weaponOffset;
+        equipment[index].Equip();
+
+        currentEquipmentIndex = index;
+
+        return equipment[index].Add(amount);
 
     }
 
@@ -120,17 +177,32 @@ public class Player : MonoBehaviour {
             PlayerController.instance.ResetCamera();
 
     }
+    void EquipWeapon(int index) {
+
+        if (!weapons[index]) return;
+        if (weapons[index].gameObject.activeSelf) return;
+
+        UnequipEquipment();
+        weapons[currentWeaponIndex].gameObject.SetActive(false);
+        currentWeaponIndex = index;
+        weapons[currentWeaponIndex].gameObject.SetActive(true);
+
+    }
+    void UnequipWeapon() {
+
+        if (!weapons[currentWeaponIndex]) return;
+        if (!weapons[currentWeaponIndex].gameObject.activeSelf) return;
+
+        weapons[currentWeaponIndex].gameObject.SetActive(false);
+        if (ads) ToggleADS();
+
+    }
     void SwitchWeapon(int index) {
 
         if (index > 1) index = 0;
         else if(index < 0) index = 1;
 
-        if (index == currentWeaponIndex) return;
-        if (!weapons[index]) return;
-
-        weapons[currentWeaponIndex].gameObject.SetActive(false);
-        currentWeaponIndex = index;
-        weapons[currentWeaponIndex].gameObject.SetActive(true);
+        EquipWeapon(index);
 
     }
     void DropWeapon() {
@@ -142,6 +214,40 @@ public class Player : MonoBehaviour {
 
         if(currentWeaponIndex == 0) currentWeaponIndex = 1;
         else currentWeaponIndex = 0;
+        weapons[currentWeaponIndex].gameObject.SetActive(true);
+
+    }
+
+    void UseEquipment() {
+
+        equipment[currentEquipmentIndex].Use();
+        if (equipment[currentEquipmentIndex].Amount != 0) return;
+
+        Destroy(equipment[currentEquipmentIndex].gameObject);
+        equipment[currentEquipmentIndex] = null;
+
+        if (!weapons[currentWeaponIndex]) return;
+        weapons[currentWeaponIndex].gameObject.SetActive(true);
+
+    }
+
+    void EquipEquipment(int index) {
+
+        if (!equipment[index]) return;
+        if ( equipment[index].gameObject.activeSelf) return;
+
+        UnequipWeapon();
+        equipment[index].Equip();
+
+    }
+    void UnequipEquipment() {
+
+        if (!equipment[currentEquipmentIndex]) return;
+        if (!equipment[currentEquipmentIndex].gameObject.activeSelf) return;
+
+        equipment[currentEquipmentIndex].Unequip();
+        
+        if (!weapons[currentWeaponIndex]) return;
         weapons[currentWeaponIndex].gameObject.SetActive(true);
 
     }
