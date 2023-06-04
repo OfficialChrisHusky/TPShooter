@@ -1,6 +1,9 @@
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour {
+
+    public static PlayerController instance;
+    void Awake() { instance = this; }
     
     [Header("Movement")]
     [SerializeField] private float speed = 1.0f;
@@ -17,10 +20,6 @@ public class PlayerController : MonoBehaviour {
     [SerializeField] private float camXAxisRotOffset = 9.0f;
     [SerializeField] private float tpMinX = -70.0f;
     [SerializeField] private float tpMaxX = 10.0f;
-
-    [Header("Body Parts")]
-    [SerializeField] private Transform eyes;
-    [SerializeField] private Transform mainCam;
 
     private Rigidbody rb;
 
@@ -41,13 +40,13 @@ public class PlayerController : MonoBehaviour {
 
         if(thirdPerson) {
 
-            mainCam.localPosition = camOffset;
-            mainCam.localRotation = Quaternion.Euler(camXAxisRotOffset, 0.0f, 0.0f);
+            Player.instance.MainCam.localPosition = camOffset;
+            Player.instance.MainCam.localRotation = Quaternion.Euler(camXAxisRotOffset, 0.0f, 0.0f);
 
         } else {
 
-            mainCam.localPosition = Vector3.zero;
-            mainCam.localRotation = Quaternion.identity;
+            Player.instance.MainCam.localPosition = Vector3.zero;
+            Player.instance.MainCam.localRotation = Quaternion.identity;
 
         }
 
@@ -57,13 +56,13 @@ public class PlayerController : MonoBehaviour {
 
         if(!thirdPersonLast && thirdPerson) {
 
-            mainCam.localPosition = camOffset;
-            mainCam.localRotation = Quaternion.Euler(camXAxisRotOffset, 0.0f, 0.0f);
+            Player.instance.MainCam.localPosition = camOffset;
+            Player.instance.MainCam.localRotation = Quaternion.Euler(camXAxisRotOffset, 0.0f, 0.0f);
 
         } else if(thirdPersonLast && !thirdPerson) {
 
-            mainCam.localPosition = Vector3.zero;
-            mainCam.localRotation = Quaternion.identity;
+            Player.instance.MainCam.localPosition = Vector3.zero;
+            Player.instance.MainCam.localRotation = Quaternion.identity;
 
         }
         
@@ -80,8 +79,7 @@ public class PlayerController : MonoBehaviour {
         direction = transform.forward * vertical + transform.right * horizontal;
 
         transform.rotation = Quaternion.Euler(0.0f, mouseRotation.y, 0.0f);
-        
-        eyes.rotation = Quaternion.Euler(mouseRotation.x, mouseRotation.y, 0.0f);
+        Player.instance.Eyes.rotation = Quaternion.Euler(mouseRotation.x, mouseRotation.y, 0.0f);
 
         if(Input.GetKeyDown(KeyCode.LeftShift)) multiplier = sprintMultiplier;
         else if(Input.GetKeyUp(KeyCode.LeftShift)) multiplier = 1.0f;
@@ -92,6 +90,13 @@ public class PlayerController : MonoBehaviour {
     void FixedUpdate() {
         
         rb.AddForce(direction.normalized * speed * multiplier * Time.deltaTime * 100.0f, ForceMode.Acceleration);
+
+    }
+
+    public void ResetCamera() {
+
+        Player.instance.MainCam.localPosition = camOffset;
+        Player.instance.MainCam.localRotation = Quaternion.Euler(camXAxisRotOffset, 0.0f, 0.0f);
 
     }
 
