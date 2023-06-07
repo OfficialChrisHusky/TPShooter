@@ -2,27 +2,33 @@ using UnityEngine;
 
 public class Equipment : MonoBehaviour {
     
+    [Header("Equipment")]
     [SerializeField] private string equipmentName;
     [SerializeField] private uint amount = 1;
     [SerializeField] private uint maxAmount = 1;
 
-    public void Equip() {
+    public virtual void Equip() {
 
         gameObject.SetActive(true);
 
     }
-    public void Unequip() {
+    public virtual void Unequip() {
 
         gameObject.SetActive(false);
 
     }
-    public void Use() {
+    public virtual void Use() {
 
         amount--;
 
     }
+    public virtual void SecondaryUse() {
 
-    public uint Add(uint count) {
+        //
+
+    }
+
+    public virtual uint Add(uint count) {
 
         uint maxAdd = maxAmount - amount;
         uint ret;

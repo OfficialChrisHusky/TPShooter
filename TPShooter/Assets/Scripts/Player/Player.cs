@@ -7,10 +7,6 @@ public class Player : MonoBehaviour {
 
     public static Player instance;
     void Awake() { instance = this; }
-    
-    [Header("Body Parts")]
-    [SerializeField] private Transform mainCam;
-    [SerializeField] private Transform eyes;
 
     [Header("Weapons")]
     [SerializeField] private List<Weapon> weapons = new List<Weapon>(2);
@@ -25,6 +21,11 @@ public class Player : MonoBehaviour {
     [Header("Equipment")]
     [SerializeField] private List<Equipment> equipment = new List<Equipment>(3);
     [SerializeField] private int currentEquipmentIndex;
+
+    [Header("Body Parts")]
+    [SerializeField] private Transform mainCam;
+    [SerializeField] private Transform eyes;
+    [SerializeField] private Rigidbody rb;
 
     void Start() {
         
@@ -82,6 +83,8 @@ public class Player : MonoBehaviour {
 
         if (Input.GetKeyDown(KeyCode.Mouse0))
             UseEquipment();
+        if (Input.GetKeyDown(KeyCode.Mouse1))
+            SecondaryUseEquipment();
 
     }
 
@@ -146,6 +149,17 @@ public class Player : MonoBehaviour {
 
     }
 
+    public void ToggleADS() {
+
+        ads = !ads;
+
+        if(ads)
+            mainCam.localPosition = adsCamOffset;
+        else
+            PlayerController.instance.ResetCamera();
+
+    }
+
     void Shoot() {
 
         if (!weapons[currentWeaponIndex].Shoot()) return;
@@ -165,16 +179,6 @@ public class Player : MonoBehaviour {
     void Reload() {
 
         weapons[currentWeaponIndex].Reload();
-
-    }
-    void ToggleADS() {
-
-        ads = !ads;
-
-        if(ads)
-            mainCam.localPosition = adsCamOffset;
-        else
-            PlayerController.instance.ResetCamera();
 
     }
     void EquipWeapon(int index) {
@@ -230,6 +234,11 @@ public class Player : MonoBehaviour {
         weapons[currentWeaponIndex].gameObject.SetActive(true);
 
     }
+    void SecondaryUseEquipment() {
+
+        equipment[currentEquipmentIndex].SecondaryUse();
+
+    }
 
     void EquipEquipment(int index) {
 
@@ -252,7 +261,10 @@ public class Player : MonoBehaviour {
 
     }
 
+    public bool ADS { get { return ads; } }
+
     public Transform MainCam { get { return mainCam; } }
     public Transform Eyes { get { return eyes; } }
+    public Rigidbody Rb { get { return rb; } }
 
 }
