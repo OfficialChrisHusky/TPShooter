@@ -1,3 +1,4 @@
+using System.Runtime.Serialization;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour {
@@ -5,74 +6,50 @@ public class PlayerController : MonoBehaviour {
     public static PlayerController instance;
     void Awake() { instance = this; }
     
+    public float multiplier = 1.0f;
     [Header("Movement")]
     [SerializeField] private float speed = 1.0f;
     [SerializeField] private float sprintMultiplier = 1.2f;
+    [SerializeField] private float groundDrag = 2.0f;
 
     [Header("Looking around")]
     [SerializeField] private float sensitivity = 1.0f;
     [SerializeField] private float minX = -70.0f;
     [SerializeField] private float maxX = 10.0f;
-
-    [Header("Third Person")]
-    [SerializeField] private bool thirdPerson = true;
     [SerializeField] private Vector3 camOffset = new Vector3(0.0f, 1.35f, -3.35f);
     [SerializeField] private float camXAxisRotOffset = 9.0f;
-    [SerializeField] private float tpMinX = -70.0f;
-    [SerializeField] private float tpMaxX = 10.0f;
+
+    [Header("Jumping")]
+    [SerializeField] private float jumpForce = 10.0f;
+    [SerializeField] private float airDrag = 5.0f;
+
+    [Header("Ground Detection")]
+    [SerializeField] private bool grounded;
+    [SerializeField] private LayerMask groundMask;
+    [SerializeField] private Transform groundCheck;
+    [SerializeField] private float groundDistance = 0.4f;
 
     private Rigidbody rb;
 
     private Vector3 direction;
-    private float multiplier = 1.0f;
 
     private Vector2 mouseRotation;
-
-    private bool thirdPersonLast;
 
     void Start() {
         
         rb = GetComponent<Rigidbody>();
-        thirdPersonLast = thirdPerson;
 
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
 
-        if(thirdPerson) {
-
-            Player.instance.MainCam.localPosition = camOffset;
-            Player.instance.MainCam.localRotation = Quaternion.Euler(camXAxisRotOffset, 0.0f, 0.0f);
-
-        } else {
-
-            Player.instance.MainCam.localPosition = Vector3.zero;
-            Player.instance.MainCam.localRotation = Quaternion.identity;
-
-        }
-
     }
 
     void Update() {
-
-        if(!thirdPersonLast && thirdPerson) {
-
-            Player.instance.MainCam.localPosition = camOffset;
-            Player.instance.MainCam.localRotation = Quaternion.Euler(camXAxisRotOffset, 0.0f, 0.0f);
-
-        } else if(thirdPersonLast && !thirdPerson) {
-
-            Player.instance.MainCam.localPosition = Vector3.zero;
-            Player.instance.MainCam.localRotation = Quaternion.identity;
-
-        }
         
         mouseRotation.y += Input.GetAxis("Mouse X") * sensitivity;
         mouseRotation.x -= Input.GetAxis("Mouse Y") * sensitivity;
         
-        if (thirdPerson)
-            mouseRotation.x = Mathf.Clamp(mouseRotation.x, tpMinX, tpMaxX);
-        else
-            mouseRotation.x = Mathf.Clamp(mouseRotation.x, minX, maxX);
+        mouseRotation.x = Mathf.Clamp(mouseRotation.x, minX, maxX);
 
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical   = Input.GetAxisRaw("Vertical");
@@ -81,10 +58,29 @@ public class PlayerController : MonoBehaviour {
         transform.rotation = Quaternion.Euler(0.0f, mouseRotation.y, 0.0f);
         Player.instance.Eyes.rotation = Quaternion.Euler(mouseRotation.x, mouseRotation.y, 0.0f);
 
-        if(Input.GetKeyDown(KeyCode.LeftShift)) multiplier = sprintMultiplier;
-        else if(Input.GetKeyUp(KeyCode.LeftShift)) multiplier = 1.0f;
+        grounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
-        thirdPersonLast = thirdPerson;
+        if (grounded && rb.drag != groundDrag) {
+
+            rb.drag = groundDrag;
+            multiplier = 1.0f;
+
+        } else if(!grounded && rb.drag != airDrag) {
+
+            rb.drag = airDrag;
+            multiplier = 0.3f;
+
+        }
+
+        if(grounded && Input.GetKeyDown(KeyCode.LeftShift)) multiplier = sprintMultiplier;
+        else if(grounded && Input.GetKeyUp(KeyCode.LeftShift)) multiplier = 1.0f;
+
+        if(grounded && Input.GetKeyDown(KeyCode.Space)) {
+
+            rb.velocity = new Vector3(rb.velocity.x, 0.0f, rb.velocity.z);
+            rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+
+        }
 
     }
     void FixedUpdate() {
